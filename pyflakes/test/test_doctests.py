@@ -10,7 +10,7 @@ from pyflakes.checker import (
 from pyflakes.test.test_other import Test as TestOther
 from pyflakes.test.test_imports import Test as TestImports
 from pyflakes.test.test_undefined_names import Test as TestUndefinedNames
-from pyflakes.test.harness import TestCase, skip
+from pyflakes.test.harness import TestCase
 
 try:
     sys.pypy_version_info
@@ -249,7 +249,6 @@ class Test(TestCase):
             '''
         """)
 
-    @skip("todo")
     def test_importBeforeAndInDoctest(self):
         self.flakes('''
         import foo
@@ -261,7 +260,7 @@ class Test(TestCase):
             """
 
         foo
-        ''', m.RedefinedWhileUnused)
+        ''')
 
     def test_importInDoctestAndAfter(self):
         self.flakes('''
