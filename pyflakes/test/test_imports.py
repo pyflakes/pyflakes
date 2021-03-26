@@ -14,78 +14,86 @@ from pyflakes.test.harness import TestCase, skip, skipIf
 class TestImportationObject(TestCase):
 
     def test_import_basic(self):
-        binding = Importation('a', None, 'a')
+        binding = Importation('a', None, for_annotations=False, full_name='a')
         assert binding.source_statement == 'import a'
         assert str(binding) == 'a'
 
     def test_import_as(self):
-        binding = Importation('c', None, 'a')
+        binding = Importation('c', None, for_annotations=False, full_name='a')
         assert binding.source_statement == 'import a as c'
         assert str(binding) == 'a as c'
 
     def test_import_submodule(self):
-        binding = SubmoduleImportation('a.b', None)
+        binding = SubmoduleImportation('a.b', None, for_annotations=False)
         assert binding.source_statement == 'import a.b'
         assert str(binding) == 'a.b'
 
     def test_import_submodule_as(self):
         # A submodule import with an as clause is not a SubmoduleImportation
-        binding = Importation('c', None, 'a.b')
+        binding = Importation('c', None, for_annotations=False, full_name='a.b')
         assert binding.source_statement == 'import a.b as c'
         assert str(binding) == 'a.b as c'
 
     def test_import_submodule_as_source_name(self):
-        binding = Importation('a', None, 'a.b')
+        binding = Importation('a', None, for_annotations=False, full_name='a.b')
         assert binding.source_statement == 'import a.b as a'
         assert str(binding) == 'a.b as a'
 
     def test_importfrom_relative(self):
-        binding = ImportationFrom('a', None, '.', 'a')
+        binding = ImportationFrom('a', None, '.',
+                                  for_annotations=False, real_name='a')
         assert binding.source_statement == 'from . import a'
         assert str(binding) == '.a'
 
     def test_importfrom_relative_parent(self):
-        binding = ImportationFrom('a', None, '..', 'a')
+        binding = ImportationFrom('a', None, '..',
+                                  for_annotations=False, real_name='a')
         assert binding.source_statement == 'from .. import a'
         assert str(binding) == '..a'
 
     def test_importfrom_relative_with_module(self):
-        binding = ImportationFrom('b', None, '..a', 'b')
+        binding = ImportationFrom('b', None, '..a',
+                                  for_annotations=False, real_name='b')
         assert binding.source_statement == 'from ..a import b'
         assert str(binding) == '..a.b'
 
     def test_importfrom_relative_with_module_as(self):
-        binding = ImportationFrom('c', None, '..a', 'b')
+        binding = ImportationFrom('c', None, '..a',
+                                  for_annotations=False, real_name='b')
         assert binding.source_statement == 'from ..a import b as c'
         assert str(binding) == '..a.b as c'
 
     def test_importfrom_member(self):
-        binding = ImportationFrom('b', None, 'a', 'b')
+        binding = ImportationFrom('b', None, 'a',
+                                  for_annotations=False, real_name='b')
         assert binding.source_statement == 'from a import b'
         assert str(binding) == 'a.b'
 
     def test_importfrom_submodule_member(self):
-        binding = ImportationFrom('c', None, 'a.b', 'c')
+        binding = ImportationFrom('c', None, 'a.b',
+                                  for_annotations=False, real_name='c')
         assert binding.source_statement == 'from a.b import c'
         assert str(binding) == 'a.b.c'
 
     def test_importfrom_member_as(self):
-        binding = ImportationFrom('c', None, 'a', 'b')
+        binding = ImportationFrom('c', None, 'a',
+                                  for_annotations=False, real_name='b')
         assert binding.source_statement == 'from a import b as c'
         assert str(binding) == 'a.b as c'
 
     def test_importfrom_submodule_member_as(self):
-        binding = ImportationFrom('d', None, 'a.b', 'c')
+        binding = ImportationFrom('d', None, 'a.b',
+                                  for_annotations=False, real_name='c')
         assert binding.source_statement == 'from a.b import c as d'
         assert str(binding) == 'a.b.c as d'
 
     def test_importfrom_star(self):
-        binding = StarImportation('a.b', None)
+        binding = StarImportation('a.b', None, for_annotations=False)
         assert binding.source_statement == 'from a.b import *'
         assert str(binding) == 'a.b.*'
 
     def test_importfrom_star_relative(self):
-        binding = StarImportation('.b', None)
+        binding = StarImportation('.b', None, for_annotations=False)
         assert binding.source_statement == 'from .b import *'
         assert str(binding) == '.b.*'
 
