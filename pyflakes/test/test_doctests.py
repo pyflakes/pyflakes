@@ -19,7 +19,7 @@ except AttributeError:
     PYPY = False
 
 
-class _DoctestMixin(object):
+class _DoctestMixin:
 
     withDoctest = True
 
@@ -35,9 +35,9 @@ class _DoctestMixin(object):
                   line.startswith('else:') or
                   line.startswith('elif ') or
                   (lines and lines[-1].startswith(('>>> @', '... @')))):
-                line = "... %s" % line
+                line = f"... {line}"
             else:
-                line = ">>> %s" % line
+                line = f">>> {line}"
             lines.append(line)
         doctestificator = textwrap.dedent('''\
             def doctest_something():
@@ -48,7 +48,7 @@ class _DoctestMixin(object):
         return doctestificator % "\n       ".join(lines)
 
     def flakes(self, input, *args, **kw):
-        return super(_DoctestMixin, self).flakes(self.doctestify(input), *args, **kw)
+        return super().flakes(self.doctestify(input), *args, **kw)
 
 
 class Test(TestCase):

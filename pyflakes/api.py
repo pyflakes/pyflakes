@@ -1,7 +1,6 @@
 """
 API for the command-line I{pyflakes} tool.
 """
-from __future__ import with_statement
 
 import ast
 import os
@@ -50,11 +49,10 @@ def check(codeString, filename, reporter=None):
                 lines = codeString.splitlines()
                 if len(lines) >= lineno:
                     text = lines[lineno - 1]
-                    if sys.version_info >= (3, ) and isinstance(text, bytes):
-                        try:
-                            text = text.decode('ascii')
-                        except UnicodeDecodeError:
-                            text = None
+                    try:
+                        text = text.decode('ascii')
+                    except UnicodeDecodeError:
+                        text = None
             offset -= 1
 
         # If there's an encoding problem with the file, the text is None.
@@ -92,7 +90,7 @@ def checkPath(filename, reporter=None):
     try:
         with open(filename, 'rb') as f:
             codestr = f.read()
-    except IOError:
+    except OSError:
         msg = sys.exc_info()[1]
         reporter.unexpectedError(filename, msg.args[1])
         return 1
@@ -115,7 +113,7 @@ def isPythonFile(filename):
             text = f.read(max_bytes)
             if not text:
                 return False
-    except IOError:
+    except OSError:
         return False
 
     return PYTHON_SHEBANG_REGEX.match(text)
@@ -187,8 +185,7 @@ def _get_version():
     """
     Retrieve and format package version along with python version & OS used
     """
-    return ('%s Python %s on %s' %
-            (__version__, platform.python_version(), platform.system()))
+    return f'{__version__} Python {platform.python_version()} on {platform.system()}'
 
 
 def main(prog=None, args=None):

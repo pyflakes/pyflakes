@@ -19,11 +19,7 @@ from pyflakes.api import (
 )
 from pyflakes.test.harness import TestCase, skipIf
 
-if sys.version_info < (3,):
-    from cStringIO import StringIO
-else:
-    from io import StringIO
-    unichr = chr
+from io import StringIO
 
 try:
     sys.pypy_version_info
@@ -37,8 +33,6 @@ try:
 except NameError:
     WIN = False
 
-ERROR_HAS_COL_NUM = ERROR_HAS_LAST_LINE = sys.version_info >= (3, 2) or PYPY
-
 
 def withStderrTo(stderr, f, *args, **kwargs):
     """
@@ -51,7 +45,7 @@ def withStderrTo(stderr, f, *args, **kwargs):
         sys.stderr = outer
 
 
-class Node(object):
+class Node:
     """
     Mock an AST node.
     """
@@ -60,7 +54,7 @@ class Node(object):
         self.col_offset = col_offset
 
 
-class SysStreamCapturing(object):
+class SysStreamCapturing:
 
     """
     Context manager capturing sys.stdin, sys.stdout and sys.stderr.
@@ -111,7 +105,7 @@ class SysStreamCapturing(object):
         sys.stderr = self._orig_stderr
 
 
-class LoggingReporter(object):
+class LoggingReporter:
     """
     Implementation of Reporter that just appends any error to a list.
     """
@@ -344,7 +338,7 @@ class TestReporter(TestCase):
         reporter = Reporter(out, None)
         message = UnusedImport('foo.py', Node(42), 'bar')
         reporter.flake(message)
-        self.assertEqual(out.getvalue(), "%s\n" % (message,))
+        self.assertEqual(out.getvalue(), f"{message}\n")
 
 
 class CheckTests(TestCase):
@@ -468,17 +462,17 @@ def baz():
         """
         with self.makeTempFile("def foo(") as sourcePath:
             if PYPY:
-                result = """\
-%s:1:7: parenthesis is never closed
+                result = f"""\
+{sourcePath}:1:7: parenthesis is never closed
 def foo(
       ^
-""" % (sourcePath,)
+"""
             else:
-                result = """\
-%s:1:9: unexpected EOF while parsing
+                result = f"""\
+{sourcePath}:1:9: unexpected EOF while parsing
 def foo(
         ^
-""" % (sourcePath,)
+"""
 
             self.assertHasErrors(
                 sourcePath,
@@ -495,11 +489,11 @@ def foo(
 
             self.assertHasErrors(
                 sourcePath,
-                ["""\
-%s:2:%s: invalid syntax
+                [f"""\
+{sourcePath}:2:{column}: invalid syntax
 \tfoo =
-%s
-""" % (sourcePath, column, last_line)])
+{last_line}
+"""])
 
     def test_nonDefaultFollowsDefaultSyntaxError(self):
         """
@@ -512,19 +506,16 @@ def foo(bar=baz, bax):
     pass
 """
         with self.makeTempFile(source) as sourcePath:
-            if ERROR_HAS_LAST_LINE:
-                if PYPY:
-                    column = 7
-                elif sys.version_info >= (3, 9):
-                    column = 21
-                elif sys.version_info >= (3, 8):
-                    column = 9
-                else:
-                    column = 8
-                last_line = ' ' * (column - 1) + '^\n'
-                columnstr = '%d:' % column
+            if PYPY:
+                column = 7
+            elif sys.version_info >= (3, 9):
+                column = 21
+            elif sys.version_info >= (3, 8):
+                column = 9
             else:
-                last_line = columnstr = ''
+                column = 8
+            last_line = ' ' * (column - 1) + '^\n'
+            columnstr = '%d:' % column
             self.assertHasErrors(
                 sourcePath,
                 ["""\
@@ -542,31 +533,25 @@ def foo(bar=baz, bax):
 foo(bar=baz, bax)
 """
         with self.makeTempFile(source) as sourcePath:
-            if ERROR_HAS_LAST_LINE:
-                if PYPY:
-                    column = 12
-                elif sys.version_info >= (3, 9):
-                    column = 17
-                elif sys.version_info >= (3, 8):
-                    column = 14
-                else:
-                    column = 13
-                last_line = ' ' * (column - 1) + '^\n'
-                columnstr = '%d:' % column
+            if PYPY:
+                column = 12
+            elif sys.version_info >= (3, 9):
+                column = 17
+            elif sys.version_info >= (3, 8):
+                column = 14
             else:
-                last_line = columnstr = ''
+                column = 13
+            last_line = ' ' * (column - 1) + '^\n'
+            columnstr = '%d:' % column
 
-            if sys.version_info >= (3, 5):
-                message = 'positional argument follows keyword argument'
-            else:
-                message = 'non-keyword arg after keyword arg'
+            message = 'positional argument follows keyword argument'
 
             self.assertHasErrors(
                 sourcePath,
-                ["""\
-%s:1:%s %s
+                [f"""\
+{sourcePath}:1:{columnstr} {message}
 foo(bar=baz, bax)
-%s""" % (sourcePath, columnstr, message, last_line)])
+{last_line}"""])
 
     def test_invalidEscape(self):
         """
@@ -576,7 +561,7 @@ foo(bar=baz, bax)
         # ValueError: invalid \x escape
         with self.makeTempFile(r"foo = '\xyz'") as sourcePath:
             if ver < (3,):
-                decoding_error = "%s: problem decoding source\n" % (sourcePath,)
+                decoding_error = f"{sourcePath}: problem decoding source\n"
             else:
                 position_end = 1
                 if PYPY:
@@ -585,14 +570,8 @@ foo(bar=baz, bax)
                     column = 13
                 else:
                     column = 7
-                    # Column has been "fixed" since 3.2.4 and 3.3.1
-                    if ver < (3, 2, 4) or ver[:3] == (3, 3, 0):
-                        position_end = 2
 
-                if ERROR_HAS_LAST_LINE:
-                    last_line = '%s^\n' % (' ' * (column - 1))
-                else:
-                    last_line = ''
+                last_line = f"{' ' * (column - 1)}^\n"
 
                 decoding_error = """\
 %s:1:%d: (unicode error) 'unicodeescape' codec can't decode bytes \
@@ -635,11 +614,10 @@ foo = '\\xyz'
         """
         If source file declares the correct encoding, no error is reported.
         """
-        SNOWMAN = unichr(0x2603)
-        source = ("""\
+        source = """\
 # coding: utf-8
-x = "%s"
-""" % SNOWMAN).encode('utf-8')
+x = "☃"
+""".encode()
         with self.makeTempFile(source) as sourcePath:
             self.assertHasErrors(sourcePath, [])
 
@@ -655,23 +633,12 @@ x = "%s"
         If a source file contains bytes which cannot be decoded, this is
         reported on stderr.
         """
-        SNOWMAN = unichr(0x2603)
-        source = ("""\
+        source = """\
 # coding: ascii
-x = "%s"
-""" % SNOWMAN).encode('utf-8')
+x = "☃"
+""".encode()
         with self.makeTempFile(source) as sourcePath:
-            if PYPY and sys.version_info < (3, ):
-                message = ('\'ascii\' codec can\'t decode byte 0xe2 '
-                           'in position 21: ordinal not in range(128)')
-                result = """\
-%s:0:0: %s
-x = "\xe2\x98\x83"
-        ^\n""" % (sourcePath, message)
-
-            else:
-                message = 'problem decoding source'
-                result = "%s: problem decoding source\n" % (sourcePath,)
+            result = f"{sourcePath}: problem decoding source\n"
 
             self.assertHasErrors(
                 sourcePath, [result])
@@ -681,14 +648,13 @@ x = "\xe2\x98\x83"
         If a source file contains bytes which cannot be decoded, this is
         reported on stderr.
         """
-        SNOWMAN = unichr(0x2603)
-        source = ("""\
+        source = """\
 # coding: ascii
-x = "%s"
-""" % SNOWMAN).encode('utf-16')
+x = "☃"
+""".encode('utf-16')
         with self.makeTempFile(source) as sourcePath:
             self.assertHasErrors(
-                sourcePath, ["%s: problem decoding source\n" % (sourcePath,)])
+                sourcePath, [f"{sourcePath}: problem decoding source\n"])
 
     def test_checkRecursive(self):
         """
@@ -700,10 +666,10 @@ x = "%s"
             os.mkdir(os.path.join(tempdir, 'foo'))
             file1 = os.path.join(tempdir, 'foo', 'bar.py')
             with open(file1, 'wb') as fd:
-                fd.write("import baz\n".encode('ascii'))
+                fd.write(b"import baz\n")
             file2 = os.path.join(tempdir, 'baz.py')
             with open(file2, 'wb') as fd:
-                fd.write("import contraband".encode('ascii'))
+                fd.write(b"import contraband")
             log = []
             reporter = LoggingReporter(log)
             warnings = checkRecursive([tempdir], reporter)
@@ -758,9 +724,8 @@ class IntegrationTests(TestCase):
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (stdout, stderr) = p.communicate()
         rv = p.wait()
-        if sys.version_info >= (3,):
-            stdout = stdout.decode('utf-8')
-            stderr = stderr.decode('utf-8')
+        stdout = stdout.decode('utf-8')
+        stderr = stderr.decode('utf-8')
         return (stdout, stderr, rv)
 
     def test_goodFile(self):
@@ -778,10 +743,10 @@ class IntegrationTests(TestCase):
         and the warnings are printed to stdout.
         """
         with open(self.tempfilepath, 'wb') as fd:
-            fd.write("import contraband\n".encode('ascii'))
+            fd.write(b"import contraband\n")
         d = self.runPyflakes([self.tempfilepath])
         expected = UnusedImport(self.tempfilepath, Node(1), 'contraband')
-        self.assertEqual(d, ("%s%s" % (expected, os.linesep), '', 1))
+        self.assertEqual(d, (f"{expected}{os.linesep}", '', 1))
 
     def test_errors_io(self):
         """
@@ -790,8 +755,7 @@ class IntegrationTests(TestCase):
         printed to stderr.
         """
         d = self.runPyflakes([self.tempfilepath])
-        error_msg = '%s: No such file or directory%s' % (self.tempfilepath,
-                                                         os.linesep)
+        error_msg = f'{self.tempfilepath}: No such file or directory{os.linesep}'
         self.assertEqual(d, ('', error_msg, 1))
 
     def test_errors_syntax(self):
@@ -801,7 +765,7 @@ class IntegrationTests(TestCase):
         printed to stderr.
         """
         with open(self.tempfilepath, 'wb') as fd:
-            fd.write("import".encode('ascii'))
+            fd.write(b"import")
         d = self.runPyflakes([self.tempfilepath])
         error_msg = '{0}:1:{2}: invalid syntax{1}import{1}     {3}^{1}'.format(
             self.tempfilepath, os.linesep, 6 if PYPY else 7, '' if PYPY else ' ')
@@ -813,7 +777,7 @@ class IntegrationTests(TestCase):
         """
         d = self.runPyflakes([], stdin='import contraband')
         expected = UnusedImport('<stdin>', Node(1), 'contraband')
-        self.assertEqual(d, ("%s%s" % (expected, os.linesep), '', 1))
+        self.assertEqual(d, (f"{expected}{os.linesep}", '', 1))
 
 
 class TestMain(IntegrationTests):
