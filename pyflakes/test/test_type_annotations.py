@@ -690,6 +690,57 @@ class TestTypeAnnotations(TestCase):
                 pass
         """)
 
+    @skipIf(version_info < (3,), 'new in Python 3')
+    def test_typing_guard_import(self):
+        # T is imported for runtime use
+        self.flakes("""
+            from typing import TYPE_CHECKING
+
+            if TYPE_CHECKING:
+                from t import T
+
+            def f(x) -> T:
+                from t import T
+
+                assert isinstance(x, T)
+                return x
+        """)
+        # T is defined at runtime in one side of the if/else block
+        self.flakes("""
+            from typing import TYPE_CHECKING, Union
+
+            if TYPE_CHECKING:
+                from t import T
+            else:
+                T = object
+
+            if not TYPE_CHECKING:
+                U = object
+            else:
+                from t import U
+
+            def f(x) -> Union[T, U]:
+                assert isinstance(x, (T, U))
+                return x
+        """)
+
+    @skipIf(version_info < (3,), 'new in Python 3')
+    def test_typing_guard_import_runtime_error(self):
+        # T and U are not bound for runtime use
+        self.flakes("""
+            from typing import TYPE_CHECKING, Union
+
+            if TYPE_CHECKING:
+                from t import T
+
+                class U:
+                    pass
+
+            def f(x) -> Union[T, U]:
+                assert isinstance(x, (T, U))
+                return x
+        """, m.UndefinedName, m.UndefinedName)
+
     def test_typing_guard_for_protocol(self):
         self.flakes("""
             from typing import TYPE_CHECKING
@@ -699,6 +750,23 @@ class TestTypeAnnotations(TestCase):
             else:
                 Protocol = object
 
+            class C(Protocol):
+                def f():  # type: () -> int
+                    pass
+        """)
+
+    def test_typing_guard_with_elif_branch(self):
+        # This test will not raise an error even though Protocol is not
+        # defined outside TYPE_CHECKING because Pyflakes does not do case
+        # analysis.
+        self.flakes("""
+            from typing import TYPE_CHECKING
+            if TYPE_CHECKING:
+                from typing import Protocol
+            elif False:
+                Protocol = object
+            else:
+                pass
             class C(Protocol):
                 def f():  # type: () -> int
                     pass
