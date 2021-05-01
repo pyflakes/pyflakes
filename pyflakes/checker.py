@@ -691,6 +691,8 @@ def getNodeName(node):
         return node.id
     if hasattr(node, 'name'):   # an ExceptHandler node
         return node.name
+    if hasattr(node, 'rest'):   # a MatchMapping node
+        return node.rest
 
 
 TYPING_MODULES = frozenset(('typing', 'typing_extensions'))
@@ -2382,4 +2384,19 @@ class Checker(object):
                 self.report(messages.IsLiteral, node)
             left = right
 
+        self.handleChildren(node)
+
+    MATCH = MATCH_CASE = MATCHCLASS = MATCHOR = MATCHSEQUENCE = handleChildren
+    MATCHSINGLETON = MATCHVALUE = handleChildren
+
+    def MATCHAS(self, node):
+        self.handleNodeStore(node)
+        self.handleChildren(node)
+
+    def MATCHMAPPING(self, node):
+        self.handleNodeStore(node)
+        self.handleChildren(node)
+
+    def MATCHSTAR(self, node):
+        self.handleNodeStore(node)
         self.handleChildren(node)
